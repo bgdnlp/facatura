@@ -1,0 +1,55 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated files
+*.pdf
+*.html
+# Uncomment the above if you don't want to track generated files
+# Keep them commented if you want to include them in version control
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.spyderproject
+.spyproject
+.ropeproject
+
+# OS specific files
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*~
+
+# Logs
+*.log
+logs/
