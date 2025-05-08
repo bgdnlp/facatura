@@ -1,136 +1,107 @@
-#!/usr/bin/env python3
 """
-Tests for the database setup script.
+Tests for the database setup module.
 """
 
 import os
-import sqlite3
-import sys
-import unittest
 import tempfile
+import sqlite3
+from pathlib import Path
+import pytest
+from facatura.db.setup_db import create_tables
 
-# Add the parent directory to the path so we can import the facatura package
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from facatura.db.setup_db import setup_database
-
-
-class TestDatabaseSetup(unittest.TestCase):
-    """Test the database setup functionality."""
-    
-    def setUp(self):
-        """Create a temporary database for testing."""
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.db_path = os.path.join(self.temp_dir.name, 'test_facatura.db')
-    
-    def tearDown(self):
-        """Clean up the temporary directory."""
-        self.temp_dir.cleanup()
-    
-    def test_database_creation(self):
-        """Test that the database is created successfully."""
-        setup_database(self.db_path)
-        self.assertTrue(os.path.exists(self.db_path))
-    
-    def test_tables_creation(self):
-        """Test that all required tables are created."""
-        setup_database(self.db_path)
+def test_create_tables():
+    """Test creating database tables."""
+    # Create a temporary directory for the test database
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "test_facatura.db"
         
-        conn = sqlite3.connect(self.db_path)
+        # Create the tables
+        result = create_tables(db_path)
+        
+        # Check that the function returned True (success)
+        assert result is True
+        
+        # Verify that the database file was created
+        assert db_path.exists()
+        
+        # Connect to the database and verify the tables
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # Get all tables in the database
+        # Get list of tables
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [table[0] for table in cursor.fetchall()]
+        tables = [row[0] for row in cursor.fetchall()]
         
-        # Check that all expected tables exist
-        expected_tables = ['companies', 'clients', 'products', 'currency_exchange']
-        for table in expected_tables:
-            self.assertIn(table, tables)
+        # Check that all required tables exist
+        assert "companies" in tables
+        assert "clients" in tables
+        assert "products" in tables
+        assert "currency_exchange" in tables
         
-        conn.close()
-    
-    def test_companies_table_structure(self):
-        """Test that the companies table has the correct structure."""
-        setup_database(self.db_path)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Get column info for companies table
-        cursor.execute("PRAGMA table_info(companies);")
+        # Verify the structure of the companies table
+        cursor.execute("PRAGMA table_info(companies)")
         columns = {row[1]: row[2] for row in cursor.fetchall()}
+        assert "name" in columns
+        assert "address" in columns
+        assert "registration_number" in columns
+        assert "fiscal_code" in columns
+        assert "bank_account" in columns
         
-        # Check required columns
-        self.assertIn('name', columns)
-        self.assertIn('address', columns)
-        self.assertIn('registration_number', columns)
-        self.assertIn('bank_account', columns)
-        
-        conn.close()
-    
-    def test_clients_table_structure(self):
-        """Test that the clients table has the correct structure."""
-        setup_database(self.db_path)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Get column info for clients table
-        cursor.execute("PRAGMA table_info(clients);")
+        # Verify the structure of the clients table
+        cursor.execute("PRAGMA table_info(clients)")
         columns = {row[1]: row[2] for row in cursor.fetchall()}
+        assert "name" in columns
+        assert "address" in columns
+        assert "fiscal_code" in columns
         
-        # Check required columns
-        self.assertIn('name', columns)
-        self.assertIn('address', columns)
-        self.assertIn('fiscal_code', columns)
-        
-        conn.close()
-    
-    def test_products_table_structure(self):
-        """Test that the products table has the correct structure."""
-        setup_database(self.db_path)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Get column info for products table
-        cursor.execute("PRAGMA table_info(products);")
+        # Verify the structure of the products table
+        cursor.execute("PRAGMA table_info(products)")
         columns = {row[1]: row[2] for row in cursor.fetchall()}
+        assert "name" in columns
+        assert "unit" in columns
+        assert "price_per_unit" in columns
+        assert "currency" in columns
         
-        # Check required columns
-        self.assertIn('name', columns)
-        self.assertIn('unit', columns)
-        self.assertIn('price_per_unit', columns)
-        
-        conn.close()
-    
-    def test_currency_exchange_table(self):
-        """Test that the currency exchange table has the correct structure and default values."""
-        setup_database(self.db_path)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Get column info for currency_exchange table
-        cursor.execute("PRAGMA table_info(currency_exchange);")
+        # Verify the structure of the currency_exchange table
+        cursor.execute("PRAGMA table_info(currency_exchange)")
         columns = {row[1]: row[2] for row in cursor.fetchall()}
+        assert "date" in columns
+        assert "from_currency" in columns
+        assert "to_currency" in columns
+        assert "rate" in columns
         
-        # Check required columns
-        self.assertIn('currency_code', columns)
-        self.assertIn('exchange_rate', columns)
-        self.assertIn('date', columns)
-        
-        # Check that default currencies are inserted
-        cursor.execute("SELECT currency_code FROM currency_exchange;")
-        currencies = [row[0] for row in cursor.fetchall()]
-        
-        expected_currencies = ['RON', 'EUR', 'USD', 'GBP']
-        for currency in expected_currencies:
-            self.assertIn(currency, currencies)
-        
+        # Close the connection
         conn.close()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_create_tables_with_existing_directory():
+    """Test creating database tables when the directory already exists."""
+    # Create a temporary directory for the test database
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "subdir" / "test_facatura.db"
+        
+        # Create the directory structure
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Create the tables
+        result = create_tables(db_path)
+        
+        # Check that the function returned True (success)
+        assert result is True
+        
+        # Verify that the database file was created
+        assert db_path.exists()
+
+
+def test_create_tables_with_invalid_path():
+    """Test creating database tables with an invalid path."""
+    # Try to create tables with an invalid path (a directory that can't be created)
+    if os.name == 'nt':  # Windows
+        invalid_path = "\\\\?\\invalid\\path\\test.db"
+    else:  # Unix/Linux/MacOS
+        invalid_path = "/root/invalid/path/test.db"  # Assuming no root access
+    
+    # This should return False, not raise an exception
+    result = create_tables(invalid_path)
+    assert result is False

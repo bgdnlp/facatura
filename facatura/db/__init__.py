@@ -1,3 +1,3 @@
 """
-Database utilities for Facatura.
+Database module for facatura.
 """
