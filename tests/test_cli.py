@@ -7,6 +7,7 @@ import tempfile
 import sqlite3
 from click.testing import CliRunner
 from facatura.cli import main
+from facatura.db.setup_db import setup_database
 
 
 def test_main():
@@ -43,7 +44,7 @@ def test_init_database():
     
     try:
         # Run the init command with the temporary database path
-        result = runner.invoke(main, ["init", "--db-path", temp_db_path])
+        result = runner.invoke(main, ["--db-path", temp_db_path, "init"])
         assert result.exit_code == 0
         assert "Database initialization completed successfully" in result.output
         
@@ -76,6 +77,172 @@ def test_init_database():
             assert currency in currencies, f"Currency '{currency}' not found in the database"
         
         conn.close()
+    
+    finally:
+        # Clean up the temporary database file
+        if os.path.exists(temp_db_path):
+            os.unlink(temp_db_path)
+
+
+def test_company_commands():
+    """Test the company management commands."""
+    runner = CliRunner()
+    
+    # Use a temporary file for the database
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_db:
+        temp_db_path = temp_db.name
+    
+    try:
+        # Initialize the database
+        setup_database(temp_db_path)
+        
+        # Test listing companies when none exist
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "list"])
+        assert result.exit_code == 0
+        assert "No companies found" in result.output
+        
+        # Test adding a company
+        result = runner.invoke(main, [
+            "--db-path", temp_db_path, "company", "add",
+            "--name", "Test Company",
+            "--address", "123 Test St",
+            "--city", "Test City",
+            "--registration-number", "J12/345/2021",
+            "--fiscal-code", "RO12345678"
+        ])
+        assert result.exit_code == 0
+        assert "Company added successfully with ID:" in result.output
+        
+        # Test listing companies after adding one
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "list"])
+        assert result.exit_code == 0
+        assert "Test Company" in result.output
+        assert "RO12345678" in result.output
+        
+        # Extract the company ID from the list output
+        company_id = int(result.output.split(":")[1].split(":")[0].strip())
+        
+        # Test showing company details
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "show", str(company_id)])
+        assert result.exit_code == 0
+        assert "Test Company" in result.output
+        assert "123 Test St" in result.output
+        assert "Test City" in result.output
+        assert "J12/345/2021" in result.output
+        assert "RO12345678" in result.output
+        assert "No bank accounts found" in result.output
+        
+        # Test adding a bank account to the company
+        result = runner.invoke(main, [
+            "--db-path", temp_db_path, "company", "add-bank-account", str(company_id),
+            "--bank-name", "Test Bank",
+            "--account-number", "123456789",
+            "--swift-code", "TESTSWIFT",
+            "--iban", "RO49AAAA1B31007593840000",
+            "--default"
+        ])
+        assert result.exit_code == 0
+        assert "Bank account added successfully with ID:" in result.output
+        
+        # Test showing company details after adding a bank account
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "show", str(company_id)])
+        assert result.exit_code == 0
+        assert "Bank Accounts:" in result.output
+        assert "Test Bank" in result.output
+        assert "123456789" in result.output
+        assert "(Default)" in result.output
+        
+        # Test deleting the company
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "delete", str(company_id)], input="y\n")
+        assert result.exit_code == 0
+        assert "deleted successfully" in result.output
+        
+        # Test listing companies after deletion
+        result = runner.invoke(main, ["--db-path", temp_db_path, "company", "list"])
+        assert result.exit_code == 0
+        assert "No companies found" in result.output
+    
+    finally:
+        # Clean up the temporary database file
+        if os.path.exists(temp_db_path):
+            os.unlink(temp_db_path)
+
+
+def test_client_commands():
+    """Test the client management commands."""
+    runner = CliRunner()
+    
+    # Use a temporary file for the database
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_db:
+        temp_db_path = temp_db.name
+    
+    try:
+        # Initialize the database
+        setup_database(temp_db_path)
+        
+        # Test listing clients when none exist
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "list"])
+        assert result.exit_code == 0
+        assert "No clients found" in result.output
+        
+        # Test adding a client
+        result = runner.invoke(main, [
+            "--db-path", temp_db_path, "client", "add",
+            "--name", "Test Client",
+            "--address", "123 Test St",
+            "--city", "Test City",
+            "--fiscal-code", "RO12345678"
+        ])
+        assert result.exit_code == 0
+        assert "Client added successfully with ID:" in result.output
+        
+        # Test listing clients after adding one
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "list"])
+        assert result.exit_code == 0
+        assert "Test Client" in result.output
+        assert "RO12345678" in result.output
+        
+        # Extract the client ID from the list output
+        client_id = int(result.output.split(":")[1].split(":")[0].strip())
+        
+        # Test showing client details
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "show", str(client_id)])
+        assert result.exit_code == 0
+        assert "Test Client" in result.output
+        assert "123 Test St" in result.output
+        assert "Test City" in result.output
+        assert "RO12345678" in result.output
+        assert "No bank accounts found" in result.output
+        
+        # Test adding a bank account to the client
+        result = runner.invoke(main, [
+            "--db-path", temp_db_path, "client", "add-bank-account", str(client_id),
+            "--bank-name", "Test Bank",
+            "--account-number", "123456789",
+            "--swift-code", "TESTSWIFT",
+            "--iban", "RO49AAAA1B31007593840000",
+            "--default"
+        ])
+        assert result.exit_code == 0
+        assert "Bank account added successfully with ID:" in result.output
+        
+        # Test showing client details after adding a bank account
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "show", str(client_id)])
+        assert result.exit_code == 0
+        assert "Bank Accounts:" in result.output
+        assert "Test Bank" in result.output
+        assert "123456789" in result.output
+        assert "(Default)" in result.output
+        
+        # Test deleting the client
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "delete", str(client_id)], input="y\n")
+        assert result.exit_code == 0
+        assert "deleted successfully" in result.output
+        
+        # Test listing clients after deletion
+        result = runner.invoke(main, ["--db-path", temp_db_path, "client", "list"])
+        assert result.exit_code == 0
+        assert "No clients found" in result.output
     
     finally:
         # Clean up the temporary database file
