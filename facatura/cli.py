@@ -2,8 +2,10 @@
 Command-line interface for facatura.
 """
 
+import os
 import click
 from . import __version__
+from .db.setup_db import setup_database
 
 
 @click.group()
@@ -14,10 +16,15 @@ def main():
 
 
 @main.command()
-def init():
+@click.option("--db-path", default="facatura.db", help="Path to the database file")
+def init(db_path):
     """Initialize the database."""
-    click.echo("Initializing database...")
-    # Database initialization code would go here
+    click.echo(f"Initializing database at {db_path}...")
+    if setup_database(db_path):
+        click.echo("Database initialization completed successfully.")
+    else:
+        click.echo("Database initialization failed.", err=True)
+        exit(1)
 
 
 @main.command()
