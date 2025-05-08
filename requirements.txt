@@ -1,0 +1,20 @@
+# Core dependencies for facatura - Romanian invoicing application
+
+# PDF generation
+reportlab>=3.6.0
+
+# HTML templating
+jinja2>=3.0.0
+
+# Command line interface enhancement (optional, as argparse is built-in)
+click>=8.0.0
+
+# Date handling
+python-dateutil>=2.8.0
+
+# Currency and number formatting
+babel>=2.9.0
+
+# For testing
+pytest>=6.0.0
+pytest-cov>=2.12.0
