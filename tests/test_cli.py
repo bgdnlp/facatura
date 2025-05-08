@@ -5,7 +5,6 @@ Tests for the CLI module.
 import os
 import tempfile
 import sqlite3
-from pathlib import Path
 from click.testing import CliRunner
 from facatura.cli import main
 
@@ -35,37 +34,50 @@ def test_create_invoice():
 
 
 def test_init_database():
-    """Test the init command with a temporary database."""
+    """Test the init command to initialize the database."""
     runner = CliRunner()
     
-    # Create a temporary directory for the test database
-    with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test_facatura.db"
-        
-        # Run the init command with the test database path
-        result = runner.invoke(main, ["init", "--db-path", str(db_path)])
-        
-        # Check that the command executed successfully
+    # Use a temporary file for the database
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_db:
+        temp_db_path = temp_db.name
+    
+    try:
+        # Run the init command with the temporary database path
+        result = runner.invoke(main, ["init", "--db-path", temp_db_path])
         assert result.exit_code == 0
-        assert "Initializing database" in result.output
-        assert "Database initialized successfully" in result.output
+        assert "Database initialization completed successfully" in result.output
         
-        # Verify that the database file was created
-        assert db_path.exists()
-        
-        # Verify that the tables were created
-        conn = sqlite3.connect(db_path)
+        # Verify that the database was created and has the expected tables
+        conn = sqlite3.connect(temp_db_path)
         cursor = conn.cursor()
         
-        # Get list of tables
+        # Get all table names
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [row[0] for row in cursor.fetchall()]
+        tables = [table[0] for table in cursor.fetchall()]
         
-        # Check that all required tables exist
-        assert "companies" in tables
-        assert "clients" in tables
-        assert "products" in tables
-        assert "currency_exchange" in tables
+        # Check if all required tables exist
+        required_tables = [
+            'companies', 
+            'clients', 
+            'products_services', 
+            'currency_exchange',
+            'bank_accounts'
+        ]
         
-        # Close the connection
+        for table in required_tables:
+            assert table in tables, f"Table '{table}' not found in the database"
+        
+        # Check if the currency_exchange table has the default currencies
+        cursor.execute("SELECT currency_code FROM currency_exchange;")
+        currencies = [currency[0] for currency in cursor.fetchall()]
+        
+        expected_currencies = ['RON', 'EUR', 'USD', 'GBP']
+        for currency in expected_currencies:
+            assert currency in currencies, f"Currency '{currency}' not found in the database"
+        
         conn.close()
+    
+    finally:
+        # Clean up the temporary database file
+        if os.path.exists(temp_db_path):
+            os.unlink(temp_db_path)
