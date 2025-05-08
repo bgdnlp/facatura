@@ -1,6 +1,9 @@
 """
-Core functionality for the facatura invoicing application.
+Core module for facatura.
 
-This module contains the core classes and functions that can be used by both
-the CLI and UI interfaces.
+This module contains the core business logic classes that are used by the CLI and UI interfaces.
 """
+
+__all__ = ['CompanyManager']
+
+from .company import CompanyManager
