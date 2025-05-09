@@ -184,7 +184,21 @@ class Company:
 
         # Update the company
         with self.db_manager:
-            cursor = self.db_manager.execute(
+# Update the company
+        with self.db_manager:
+            try:
+                cursor = self.db_manager.execute(
+                    f"UPDATE companies SET {set_clause} WHERE id = ?",
+                    tuple(values)
+                )
+                return cursor.rowcount > 0
+            except Exception as e:
+                # Log the error
+                print(f"Error updating company: {str(e)}")
+                return False
+
+    def delete(self, company_id: int) -> bool:
+        """
                 f"UPDATE companies SET {set_clause} WHERE id = ?",
                 tuple(values)
             )
