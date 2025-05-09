@@ -214,7 +214,31 @@ class Client:
         # Get all bank accounts for this client
         bank_accounts = self.bank_account.get_by_entity(client_id, 'client')
         
+bank_accounts = self.bank_account.get_by_entity(client_id, 'client')
+        
         with self.db_manager:
+            try:
+                # Delete all bank accounts for this client
+                for account in bank_accounts:
+                    self.db_manager.execute(
+                        "DELETE FROM bank_accounts WHERE id = ?",
+                        (account['id'],)
+                    )
+                
+                # Delete the client
+                cursor = self.db_manager.execute(
+                    "DELETE FROM clients WHERE id = ?",
+                    (client_id,)
+                )
+                return cursor.rowcount > 0
+            except Exception as e:
+                # Log the error and rollback the transaction
+                print(f"Error deleting client: {str(e)}")
+                self.db_manager.rollback()
+                return False
+
+    def add_bank_account(self, client_id: int, bank_name: str, account_number: str,
+                         swift_code: Optional[str] = None, iban: Optional[str] = None,
             # Delete all bank accounts for this client
             for account in bank_accounts:
                 self.db_manager.execute(
