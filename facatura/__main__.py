@@ -8,27 +8,16 @@ import sys
 import argparse
 
 from facatura.db.setup_db import setup_database
+from facatura.core.company import Company
+from facatura.core.client import Client
+from facatura.core.bank_account import BankAccount
+from facatura.cli import main as cli_main
 
 
 def main():
     """Main entry point for the application."""
-    parser = argparse.ArgumentParser(description='Facatura - Romanian invoicing application')
-    
-    subparsers = parser.add_subparsers(dest='command', help='Command to run')
-    
-    # Setup database command
-    setup_parser = subparsers.add_parser('setup-db', help='Set up the database')
-    setup_parser.add_argument('--db-path', default='facatura.db', 
-                             help='Path to the database file (default: facatura.db)')
-    
-    # Parse arguments
-    args = parser.parse_args()
-    
-    # Execute command
-    if args.command == 'setup-db':
-        setup_database(args.db_path)
-    else:
-        parser.print_help()
+    # Use the Click-based CLI
+    cli_main(obj={})
 
 
 if __name__ == '__main__':
