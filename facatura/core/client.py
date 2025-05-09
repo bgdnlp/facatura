@@ -181,7 +181,21 @@ class Client:
 
         # Update the client
         with self.db_manager:
-            cursor = self.db_manager.execute(
+# Update the client
+        with self.db_manager:
+            try:
+                cursor = self.db_manager.execute(
+                    f"UPDATE clients SET {set_clause} WHERE id = ?",
+                    tuple(values)
+                )
+                return cursor.rowcount > 0
+            except Exception as e:
+                # Log the error
+                print(f"Error updating client: {str(e)}")
+                return False
+
+    def delete(self, client_id: int) -> bool:
+        """
                 f"UPDATE clients SET {set_clause} WHERE id = ?",
                 tuple(values)
             )
