@@ -62,7 +62,47 @@ class DatabaseManager:
         
         cursor = self._connection.cursor()
         if params:
-            cursor.execute(query, params)
+query (str): The SQL query to execute.
+            params (Optional[Tuple[Any, ...]]): Parameters for the query.
+
+        Returns:
+            sqlite3.Cursor: A cursor object.
+        """
+        if not self._connection:
+            self.connect()
+        
+        cursor = self._connection.cursor()
+        try:
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+        except sqlite3.Error as e:
+            # TODO: Implement proper error handling and logging
+            raise
+        
+        return cursor
+
+    def execute_many(self, query: str, params_list: List[Tuple[Any, ...]]) -> sqlite3.Cursor:
+        """
+        Execute a SQL query with multiple parameter sets.
+
+        Args:
+            query (str): The SQL query to execute.
+            params_list (List[Tuple[Any, ...]]): List of parameter tuples.
+
+        Returns:
+            sqlite3.Cursor: A cursor object.
+        """
+        if not self._connection:
+            self.connect()
+        
+        cursor = self._connection.cursor()
+        try:
+            cursor.executemany(query, params_list)
+        except sqlite3.Error as e:
+            # TODO: Implement proper error handling and logging
+            raise
         else:
             cursor.execute(query)
         
