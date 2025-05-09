@@ -217,7 +217,31 @@ class Company:
         # Get all bank accounts for this company
         bank_accounts = self.bank_account.get_by_entity(company_id, 'company')
         
+bank_accounts = self.bank_account.get_by_entity(company_id, 'company')
+        
         with self.db_manager:
+            try:
+                # Delete all bank accounts for this company
+                for account in bank_accounts:
+                    self.db_manager.execute(
+                        "DELETE FROM bank_accounts WHERE id = ?",
+                        (account['id'],)
+                    )
+                
+                # Delete the company
+                cursor = self.db_manager.execute(
+                    "DELETE FROM companies WHERE id = ?",
+                    (company_id,)
+                )
+                return cursor.rowcount > 0
+            except Exception as e:
+                self.db_manager.rollback()
+                # TODO: Implement proper logging
+                print(f"Error deleting company: {e}")
+                return False
+
+    def add_bank_account(self, company_id: int, bank_name: str, account_number: str,
+                         swift_code: Optional[str] = None, iban: Optional[str] = None,
             # Delete all bank accounts for this company
             for account in bank_accounts:
                 self.db_manager.execute(
